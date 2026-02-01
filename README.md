@@ -26,7 +26,24 @@ This Docker project enables the secure execution of shell (.sh) scripts within a
       - ./scripts-example:/sh-scripts
 
 ```
+### using prod example 
+```bash
+  sh-runner:
+    image: muhaimeed/sh-runner:latest
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep cron" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      EXECUTE_ON_RUN: "true" # Execute scripts immediately on container startup (default: false)
+      CRON_SCHEDULE: "0 2 * * *" # Run scripts daily at 02:00
+    volumes:
+      - ./logger:/logger
+      - ./scripts-example:/sh-scripts
 
+```
 ### Volumes
 
 * /sh-scripts – Directory containing shell scripts to be executed
