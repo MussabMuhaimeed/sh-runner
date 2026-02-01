@@ -1,0 +1,17 @@
+services:
+  # sh runner container by cron job
+  sh-runner:
+    container_name: sh-runner
+    build: .
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep cron" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      EXECUTE_ON_RUN: "true" # default is false
+      CRON_SCHEDULE: "0 2 * * *" # run cron job at 
+    volumes:
+      - ./logger:/logger
+      - ./scripts-example:/sh-scripts

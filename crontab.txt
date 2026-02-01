@@ -1,0 +1,1 @@
+CRON_SCHEDULE /defaultPoint.sh > /logger/cron.log 2>&1
