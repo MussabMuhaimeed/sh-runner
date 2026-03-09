@@ -55,3 +55,7 @@ This Docker project enables the secure execution of shell (.sh) scripts within a
 If set to true, scripts will run immediately when the container starts.
 2. **CRON_SCHEDULE**
 Cron expression that defines when scripts should be executed.
+
+## 📑 License
+
+[MIT](http://opensource.org/licenses/MIT)
