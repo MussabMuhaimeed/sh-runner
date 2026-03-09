@@ -11,6 +11,9 @@ echo "[INFO] EXECUTE_ON_RUN = $EXECUTE_ON_RUN"
 LOG_FILE="/logger/default.log"
 DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 
+# Fix permissions if needed
+chmod +x /sh-scripts/*.sh 2>/dev/null || true
+
 # Execute startup scripts if enabled
 if [ "$EXECUTE_ON_RUN" = "true" ]; then
   echo "[INFO] EXECUTE_ON_RUN enabled. Running startup scripts..." >> "$LOG_FILE"
