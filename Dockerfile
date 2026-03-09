@@ -26,7 +26,7 @@ RUN set -ex && sed -i 's/\r$//' /tmp/crontab_root_temp && mv /tmp/crontab_root_t
 RUN chmod +x /entrypoint.sh
 RUN chmod +x /defaultPoint.sh
 
-RUN find /sh-scripts -type f -name "*.sh" -exec chmod +x {} \;
+RUN find /sh-scripts -type f -name "*.sh" -exec chmod +x {} \; || true
 
 # Create log and backup folders
 RUN mkdir -p /logger /backup
