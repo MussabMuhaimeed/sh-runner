@@ -1,56 +1,59 @@
 #!/bin/sh
-set -e
+set -eu
 
-# Default cron time if not provided
 : "${CRON_SCHEDULE:=0 2 * * *}"
-: "${EXECUTE_ON_RUN:=false}"
-
-echo "[INFO] Using cron schedule: $CRON_SCHEDULE"
-echo "[INFO] EXECUTE_ON_RUN = $EXECUTE_ON_RUN"
+: "${EXECUTE_ON_START:=false}"
 
 LOG_FILE="/logger/default.log"
-DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+mkdir -p /logger /sh-scripts
+touch "$LOG_FILE"
 
-# Fix permissions if needed
-chmod +x /sh-scripts/*.sh 2>/dev/null || true
+log() {
+  echo "$1" | tee -a "$LOG_FILE"
+}
 
-# Execute startup scripts if enabled
-if [ "$EXECUTE_ON_RUN" = "true" ]; then
-  echo "[INFO] EXECUTE_ON_RUN enabled. Running startup scripts..." >> "$LOG_FILE"
-  echo "[INFO] EXECUTE Time $DATE " >> "$LOG_FILE"
+log "[INFO] Using cron schedule: $CRON_SCHEDULE"
+log "[INFO] EXECUTE_ON_START = $EXECUTE_ON_START"
 
-  for script in /sh-scripts/*.sh; do
+# Normalize Windows CRLF and ensure scripts are executable
+for f in /run-scripts.sh /defaultPoint.sh /sh-scripts/*.sh; do
+  [ -f "$f" ] || continue
+  sed -i 's/\r$//' "$f" 2>/dev/null || true
+  chmod +x "$f" 2>/dev/null || true
+done
+
+# Setup helpers once at start (not cron jobs)
+run_setup_scripts() {
+  for script in /sh-scripts/install-*.sh /sh-scripts/*.setup.sh; do
+    [ -f "$script" ] || continue
     [ -x "$script" ] || continue
-
-    echo "[INFO] Executing $script..." >> "$LOG_FILE"
+    log "[INFO] Running setup script: $script"
     if "$script" >> "$LOG_FILE" 2>&1; then
-      echo "[SUCCESS] $script completed successfully." >> "$LOG_FILE"
-      echo "-------------------$script completed successfully--------------------" >> "$LOG_FILE"
+      log "[SUCCESS] setup script completed: $script"
     else
-      echo "[ERROR] $script failed." >> "$LOG_FILE"
+      log "[WARN] setup script failed: $script (exit $?)"
     fi
   done
+}
 
-  echo "[INFO] Startup scripts finished." >> "$LOG_FILE"
+run_setup_scripts
+
+# Optional one-shot job run on container start (never starts crond)
+if [ "$EXECUTE_ON_START" = "true" ]; then
+  log "[INFO] EXECUTE_ON_START enabled. Running job scripts once..."
+  /run-scripts.sh || log "[WARN] startup job run reported errors"
 else
-  echo "[INFO] EXECUTE_ON_RUN is false. Skipping startup scripts." >> "$LOG_FILE"
+  log "[INFO] EXECUTE_ON_START is false. Skipping startup job scripts."
 fi
 
-echo "" >> "$LOG_FILE"
-echo "---------------------------------------------------------------------" >> "$LOG_FILE"
-echo "" >> "$LOG_FILE"
+log "---------------------------------------------------------------------"
 
-
-# Generate real crontab from txt template
-sed "s|CRON_SCHEDULE|$CRON_SCHEDULE|g" \
-  /app/crontab.txt > /etc/crontabs/root
-
-# Fix Windows CRLF if present
+# Build crontab from template — schedule runs scripts only, never another crond
+sed "s|CRON_SCHEDULE|$CRON_SCHEDULE|g" /app/crontab.txt > /etc/crontabs/root
 sed -i 's/\r$//' /etc/crontabs/root
 
-# Debug
-echo "[INFO] Final crontab:"
-cat /etc/crontabs/root
+log "[INFO] Final crontab:"
+tee -a "$LOG_FILE" < /etc/crontabs/root
 
-# Start cron
+# Single long-lived cron daemon for this container
 exec crond -f -l 8 -L /logger/cron.log

@@ -1,33 +1,14 @@
 FROM alpine:3.20
 
-RUN apk add --no-cache
+# Users install what they need via mounted setup scripts (install-*.sh / *.setup.sh).
 
-# Set working directory
 WORKDIR /app
 
-# Copy scripts
-COPY defaultPoint.sh /defaultPoint.sh
-COPY entrypoint.sh /entrypoint.sh
+COPY run-scripts.sh defaultPoint.sh entrypoint.sh / 
 COPY crontab.txt /app/crontab.txt
 
+RUN sed -i 's/\r$//' /run-scripts.sh /defaultPoint.sh /entrypoint.sh /app/crontab.txt \
+ && chmod +x /run-scripts.sh /defaultPoint.sh /entrypoint.sh \
+ && mkdir -p /logger /sh-scripts
 
-COPY crontab.txt /tmp/crontab_root_temp
-
-# Verify sed exists and the file is there before attempting sed
-RUN which sed && ls -l /tmp/crontab_root_temp
-
-# --- This is the line that might be causing the error ---
-# We'll use 'set -ex' to make sure every command exits immediately on error
-# and prints what it's doing.
-RUN set -ex && sed -i 's/\r$//' /tmp/crontab_root_temp && mv /tmp/crontab_root_temp /etc/crontabs/root
-
-
-# Permissions
-RUN chmod +x /entrypoint.sh
-RUN chmod +x /defaultPoint.sh
-
-# Create log and backup folders
-RUN mkdir -p /logger /backup
-
-# Start container with entrypoint
 CMD ["/entrypoint.sh"]
