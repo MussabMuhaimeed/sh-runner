@@ -1,1 +1,3 @@
-CRON_SCHEDULE /defaultPoint.sh > /logger/cron.log 2>&1
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+SHELL=/bin/sh
+CRON_SCHEDULE /run-scripts.sh >> /logger/cron.log 2>&1
